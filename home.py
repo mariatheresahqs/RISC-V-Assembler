@@ -16,7 +16,7 @@ for i in linhas:
     rs1 = entradaFormatada.split(",")[1]
     rs1 = rs1.replace(' ', '')
     rs2 = entradaFormatada.split(", ")[2]
-    binario = TipoR(instrucao, rd, rs1, rs2) # TEM DE TROCAR PELA FUNCAO TRADUTOR QUANDO A FUNCAO IMEDIATA FICAR PRONTA!!!
+    binario = Tradutor(instrucao, rd, rs1, rs2)
     # escrita do conteudo traduzido no arquivo de saida
     saida.writelines(binario+"\n")
 arquivo.close()

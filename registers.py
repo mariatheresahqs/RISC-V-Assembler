@@ -1,9 +1,49 @@
+import ctypes
 # -*- coding: utf-8 -*-
 
+#####################
 # REGISTRADOR - configuracao em bits
 # funct7    rs2     rs1     funct3      rd      opcode
 # 0000000                   abaixo              0110011
 # 0100000
+#####################
+# IMEDIATOS - configuracao em bits
+# imm       rs1     funct3      rd      opcode
+# 12bits    5bits   3bits       5bits   7bits
+
+# FUNCAO QUE DEFINE O TIPO DE OPERACAO
+def tipoOpercao(instrucao):
+    operacoes = {
+        # Operacoes de registradores
+        "add": "TipoR",
+        "sub": "TipoR",
+        "sll": "TipoR",
+        "slt": "TipoR",
+        "sltu": "TipoR",
+        "xor": "TipoR",
+        "srl": "TipoR",
+        "sra": "TipoR",
+        "or": "TipoR",
+        "and": "TipoR",
+        "addw": "TipoR",
+        "subw": "TipoR",
+        "sllw": "TipoR",
+        "srlw": "TipoR",
+        "sraw": "TipoR",
+        #Operacoes de imediatos
+        "addi": "TipoI",
+        "slti": "TipoI",
+        "sltiu": "TipoI",
+        "xori": "TipoI",
+        "ori": "TipoI",
+        "andi": "TipoI",
+        "slli": "TipoI",
+    }
+    value = operacoes.get(instrucao)
+    if value == None:
+        print("Operação não encontrada.")
+        return
+    return operacoes[instrucao]
 
 
 # FUNCAO QUE CONVERTE O CODIGO DA FUNCAO DE SETE BITS EM BINARIO
@@ -17,6 +57,7 @@ def Funct7(instrucao):
 # FUNCAO QUE CONVERTE O CODIGO DE OPERACAO EM BINARIO
 def Funct3(instrucao):
     operacoes = {
+        # Operacoes de registradores
         "add": "000",
         "sub": "000",
         "sll": "001",
@@ -32,10 +73,19 @@ def Funct3(instrucao):
         "sllw": "001",
         "srlw": "101",
         "sraw": "101",
+        #Operacoes de imediatos
+        "addi": "000",
+        "slti": "010",
+        "sltiu": "011",
+        "xori": "100",
+        "ori": "110",
+        "andi": "111",
+        "slli": "001",
     }
-    if operacoes[instrucao] == None:
+    value = operacoes.get(instrucao)
+    if value == None:
         print("Operação não encontrada.")
-        return "-1"
+        return
     return operacoes[instrucao]
 
 
@@ -76,9 +126,10 @@ def Registrador(registrador):
         'x31': '11111'
     }
 
-    if reg[registrador] == None:
-        print("Registrador não encontrado.")
-        return "-1"
+    value = reg.get(registrador)
+    if value == None:
+        print("Operação não encontrada.")
+        return
     return reg[registrador]
 
 
@@ -93,8 +144,47 @@ def TipoR(instrucao, rd, rs1, rs2):
     return funct7+rs2+rs1+funct3+rd+Optcode
 
 
-# def Tradutor(instrucao, rd, rs1, rs2):
-#     if (instrucao == TipoR):
-#         TipoR(instrucao, rd, rs1, rs2)
-#     # else:
-#         # TipoI(instrucao, rd, rs1, rs2)
+# FUNCAO RESPONSAVEL POR CONVERTER O VALOR DESTINADO AO IMEDIATO EM BINARIO
+def Imm(numero, bits=12):
+    numero = int(numero)
+    if(numero >= 0):
+        # Converte o valor do numero em binario
+        strImm = bin(int(numero))
+        # Retira a parte de descricao binaria (0b) da string
+        strImm = strImm.replace("0b", "")
+        # Preenche apenas o numero dado e convertido em binario com os bits 0 necessarios a esquerda
+        while len(strImm) != bits:
+            # Se o valor convertido em bits ja possui o valor maximo de bits ja da o retorno
+            if len(strImm) == bits:
+                return strImm
+            # Se o valor convertido em bits for maior que o valor maximo de bits
+            if len(strImm) > bits:
+                print("Valor decimal maior que o permitido em 1 bit!\n")
+                return strImm
+            # Caso o valor convertido em bits seja menor que o valor maximo, adicina bits 0 a esquerda
+            strImm = "0"+strImm
+        return strImm
+    # Caso o valor convertido em bits seja negativo
+    else:
+        # Converte o valor inteiro negativo para para seu complemento de dois
+        strImm = bin(ctypes.c_ushort(numero).value)
+        strImm = strImm.replace("0b", "")
+        # Retorno apenas dos 12 ultimos bits convertidos
+        return strImm[4:16]
+
+# FUNCAO RESPONSAVEL POR MONTAR AS OPERACOES DE IMEDIATOS EM BINARIO
+def TipoI(instrucao, rd, rs1, imm):
+    imm = Imm(imm)
+    rs1 = Registrador(rs1)
+    funct3 = Funct3(instrucao)
+    rd = Registrador(rd)
+    Optcode = '0010011'
+    return imm+rs1+funct3+rd+Optcode
+
+# FUNCAO QUE CONVERTE A OPERACAO POR TIPO 
+def Tradutor(instrucao, rd, rs1, rs2):
+    tipo = tipoOpercao(instrucao)
+    if (tipo == "TipoR"):
+        return TipoR(instrucao, rd, rs1, rs2)
+    else:
+        return TipoI(instrucao, rd, rs1, rs2)
